@@ -15,18 +15,19 @@ gen_data <- function(param, n, n_cluster, sigma_v){
   bmi <- rnorm(n,28,4)
   x <- data.frame(1,trt,age,bmi)
   cluster <- rep(1:n_cluster, each=n/n_cluster)
+  vk <- 0
   
   # Generate outcome
   if (n_cluster > 1){
-    vk <- rnorm(n_cluster,0,sigma_v)
-    pi <- expit(as.matrix(x)%*%as.matrix(param) + rep(vk, each=n/n_cluster)) # Random intercept
+    vk <- rep(rnorm(n_cluster,0,sigma_v), each=n/n_cluster)
+    pi <- expit(as.matrix(x)%*%as.matrix(param) + vk) # Random intercept
   }else{
     pi <- expit(as.matrix(x)%*%as.matrix(param))
   }
   
   y <- rbinom(n,1,pi)
   
-  data.frame(y,trt,age,bmi,cluster)
+  data.frame(y,trt,age,bmi,cluster,vk)
 }
 
 
@@ -36,7 +37,7 @@ gen_data <- function(param, n, n_cluster, sigma_v){
 ## Unclustered simulation
 set.seed(3)
 dat <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=1, sigma_v=3)
-dat <- dat %>% select(-cluster)
+dat <- dat %>% select(-cluster, -vk)
 
 # Univariate logistic regression
 lr <- glm(y ~ trt + age + bmi, family="binomial", data=dat)
@@ -45,17 +46,16 @@ summary(lr)
 # Initialize parameters
 num_iter <- 70000
 burn_in <- 5000
-num_var <- ncol(dat)
-beta.init <- rep(0,num_var)
-sigma.jump <- c(0.25,0.2,0.01,0.01)
-y <- as.matrix(dat %>% select(y))
-x <- as.matrix(dat %>% select(-y))
+beta.init <- rep(0,ncol(dat))
+jump_sigma <- c(0.25,0.2,0.01,0.01)
+y <- dat %>% select(y)
+x <- dat %>% select(-y)
 
 # Run test
 set.seed(3)
-run1 <- MH.u(y, x, beta.init, sigma.jump, num_iter, burn_in)
-run2 <- MH.u(y, x, beta.init+runif(1,-0.5,0.5), sigma.jump, num_iter, burn_in)
-run3 <- MH.u(y, x, beta.init+runif(1,-1,1), sigma.jump, num_iter, burn_in)
+run1 <- MH.u(y, x, beta.init, jump_sigma, num_iter, burn_in)
+run2 <- MH.u(y, x, beta.init+runif(1,-0.5,0.5), jump_sigma, num_iter, burn_in)
+run3 <- MH.u(y, x, beta.init+runif(1,-1,1), jump_sigma, num_iter, burn_in)
 
 # Compare coefficient estimates
 coef1 <- run1$coef
@@ -92,8 +92,22 @@ gelman.diag(ptr)
 
 ### Clustered simulation
 set.seed(3)
-dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=10, sigma_v=4)
+num_cluster <- 5
+dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=num_cluster, sigma_v=4)
 glmer(y ~ trt + age + bmi + (1 | cluster), family="binomial", data=dat.cl)
 
+# Initialize parameters
+dat.cl <- dat.cl %>% select(-vk)
 
+num_iter <- 70000
+burn_in <- 5000
+theta.init <- rep(0,ncol(dat.cl)+num_cluster)
+gamma.init <- c(1,2)
+jump_sigma <- c(0.25,0.2,0.01,0.01,rep(0.2, num_cluster),0.2)
+y <- dat.cl %>% select(y)
+x <- dat.cl %>% select(-y)
 
+# Run test
+source("BLR_func_cluster.R")
+set.seed(3)
+run1 <- MH.c(y, x, theta.init, gamma.init, jump_sigma, num_iter, burn_in)

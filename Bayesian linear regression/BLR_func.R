@@ -23,9 +23,15 @@ log_post.u <- function(theta, y, x) {
 # num_iter - number of MH steps
 # burn_in - number of iterations to remove for burn-in
 MH.u <- function(y, x, beta_init, jump_sigma, num_iter, burn_in){
+  # Format data
+  y <- as.matrix(y)
+  x <- as.matrix(x)
+  
   # Total # of iterations
   total_iter <- num_iter + burn_in + 1
-  x <- cbind(1,x) # append 1's to x for intercept term
+  
+  # Format x
+  x <- cbind(1,x) 
   
   # Acceptance probability storage
   accept <- matrix(0, 2, length(beta_init))
