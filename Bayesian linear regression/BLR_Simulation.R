@@ -1,12 +1,8 @@
 library(dplyr)
-library(coda)
 library(lme4)
 source("BLR_func.R")
 source("BLR_func_cluster.R")
 
-
-
-### Unclustered simulation
 ## Generate simple data set
 # param = beta coefficients
 # n = number of observations
@@ -33,6 +29,11 @@ gen_data <- function(param, n, n_cluster, sigma_v){
   data.frame(y,trt,age,bmi,cluster)
 }
 
+
+
+
+
+## Unclustered simulation
 set.seed(3)
 dat <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=1, sigma_v=3)
 dat <- dat %>% select(-cluster)
@@ -42,25 +43,19 @@ lr <- glm(y ~ trt + age + bmi, family="binomial", data=dat)
 summary(lr)
 
 # Initialize parameters
-num_iter <- 30000
+num_iter <- 70000
 burn_in <- 5000
 num_var <- ncol(dat)
-theta.init <- rep(0,num_var)
+beta.init <- rep(0,num_var)
+sigma.jump <- c(0.25,0.2,0.01,0.01)
 y <- as.matrix(dat %>% select(y))
 x <- as.matrix(dat %>% select(-y))
-sigma.prior <- rep(1,num_var)
-sigma.jump <- c(0.2,0.2,0.004,0.01)
 
 # Run test
 set.seed(3)
-run1 <- MH(y, x, theta.init, sigma.prior, sigma.jump, num_iter, burn_in)
-run2 <- MH(y, x, theta.init+runif(1,-0.5,0.5), sigma.prior, sigma.jump, num_iter, burn_in)
-run3 <- MH(y, x, theta.init+runif(1,-0.2,0.2), sigma.prior, sigma.jump, num_iter, burn_in)
-
-#my.theta <- seq(from=-5, to 20, length=1000)
-#my.logPost <- rep(NA, 1000)
-#for(i in 1:1000) my.logPost[i] <- log_post(c(my.theta[i], 0, 0, 0),
-#                                           y, x, ,sigma.prior)
+run1 <- MH.u(y, x, beta.init, sigma.jump, num_iter, burn_in)
+run2 <- MH.u(y, x, beta.init+runif(1,-0.5,0.5), sigma.jump, num_iter, burn_in)
+run3 <- MH.u(y, x, beta.init+runif(1,-1,1), sigma.jump, num_iter, burn_in)
 
 # Compare coefficient estimates
 coef1 <- run1$coef
@@ -91,19 +86,13 @@ run1$accept[1,]/run1$accept[2,]
 ptr <- mcmc.list(mcmc(coef1), mcmc(coef2), mcmc(coef3))
 gelman.diag(ptr)
 
-par(mfrow=c(2,2))
-hist(c(coef1[,1],coef2[,1],coef3[,1]))
-hist(c(coef1[,2],coef2[,2],coef3[,2]))
-hist(c(coef1[,3],coef2[,3],coef3[,3]))
-hist(c(coef1[,4],coef2[,4],coef3[,4]))
-
 
 
 
 
 ### Clustered simulation
 set.seed(3)
-dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=10, sigma_v=3)
+dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=10, sigma_v=4)
 glmer(y ~ trt + age + bmi + (1 | cluster), family="binomial", data=dat.cl)
 
 
