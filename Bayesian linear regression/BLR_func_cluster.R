@@ -73,6 +73,8 @@ MH.c <- function(y, x, theta_init, gamma_init, jump_sigma, num_iter, burn_in){
         vk_prev <- prev_theta[num_theta-1]
         sv <- prev_theta[num_theta]
         
+        # Subset y and x for cluster k
+        
         # Calculate log posterior probability of proposed and previous
         log_prop <- log_lik.vk(beta, y, x, theta_hat[i-1,num_theta-1], theta_hat[i-1,num_theta])
         log_prev <- log_lik.vk(beta, y, x, theta_hat[i-1,num_theta-1], theta_hat[i-1,num_theta])

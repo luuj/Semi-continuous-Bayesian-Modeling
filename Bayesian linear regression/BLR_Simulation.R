@@ -8,26 +8,32 @@ source("BLR_func_cluster.R")
 # n = number of observations
 # n_cluster = number of clusters
 # sigma_v = variance of random effect distribution
-gen_data <- function(param, n, n_cluster, sigma_v){
+
+# Keep design matrix outside of data generator
+age <- sample(20:70,n,replace=TRUE)
+trt <- rbinom(n,1,0.5)
+bmi <- rnorm(n,28,4)
+x <- data.frame(1,trt,age,bmi)
+
+# J is the number of clusters
+# n_j is the number of observations per cluster
+# Could add in cluster specific covariate like sex/trt
+gen_data <- function(param, x, n, n_cluster, sigma_v){
   # Generate covariates
-  age <- sample(20:70,n,replace=TRUE)
-  trt <- rbinom(n,1,0.5)
-  bmi <- rnorm(n,28,4)
-  x <- data.frame(1,trt,age,bmi)
   cluster <- rep(1:n_cluster, each=n/n_cluster)
-  vk <- 0
+  V_j <- 0
   
   # Generate outcome
   if (n_cluster > 1){
-    vk <- rep(rnorm(n_cluster,0,sigma_v), each=n/n_cluster)
-    pi <- expit(as.matrix(x)%*%as.matrix(param) + vk) # Random intercept
+    V_j <- rep(rnorm(n_cluster,0,sigma_v), each=n/n_cluster)
+    pi <- expit(as.matrix(x)%*%as.matrix(param) + V_j) # Random intercept
   }else{
     pi <- expit(as.matrix(x)%*%as.matrix(param))
   }
   
   y <- rbinom(n,1,pi)
   
-  data.frame(y,trt,age,bmi,cluster,vk)
+  data.frame(y,trt,age,bmi,cluster,V_j)
 }
 
 
@@ -93,7 +99,7 @@ gelman.diag(ptr)
 ### Clustered simulation
 set.seed(3)
 num_cluster <- 5
-dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=num_cluster, sigma_v=4)
+dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), n=1000, n_cluster=num_cluster, sigma_v=0.5)
 glmer(y ~ trt + age + bmi + (1 | cluster), family="binomial", data=dat.cl)
 
 # Initialize parameters
@@ -111,3 +117,8 @@ x <- dat.cl %>% select(-y)
 source("BLR_func_cluster.R")
 set.seed(3)
 run1 <- MH.c(y, x, theta.init, gamma.init, jump_sigma, num_iter, burn_in)
+
+rgamma(10000,0.5,0.5)
+
+# Try to analytically derive the full conditional is just a gamma
+# Complete the square to
