@@ -1,7 +1,11 @@
 # BLR implementation
 # Inverse-logit
 expit <- function(xb){
-  exp(xb) / (1+exp(xb))
+  1 / (1+exp(-xb))
+}
+
+logit <- function(xb){
+  log(xb/(1-xb))
 }
 
 # Logistic log likelihood
@@ -20,15 +24,15 @@ log_post.u <- function(theta, y, x) {
 # x - covariates
 # beta_init - starting beta values for MH algorithm
 # jump_sigma - variance for proposal distribution
-# num_iter - number of MH steps
+# n_iter - number of MH steps
 # burn_in - number of iterations to remove for burn-in
-MH.u <- function(y, x, beta_init, jump_sigma, num_iter, burn_in){
+MH.u <- function(y, x, beta_init, jump_sigma, n_iter, burn_in){
   # Format data
   y <- as.matrix(y)
   x <- as.matrix(x)
   
   # Total # of iterations
-  total_iter <- num_iter + burn_in + 1
+  total_iter <- n_iter + burn_in + 1
   
   # Format x
   x <- cbind(1,x) 
