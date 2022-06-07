@@ -1,6 +1,6 @@
 # Covariate matrix and number of observations
-n_j <- 200
-J <- 5
+n_j <- 40
+J <- 100
 n <- n_j*J
 design_matrix <- data.frame(1,trt=rbinom(n,1,0.5),
                 age=sample(20:70,n,replace=TRUE),

@@ -66,11 +66,15 @@ dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), x=design_matrix, n_j=n_j, J=
 stored.vk <- unique(dat.cl$V_j)
 dat.cl <- dat.cl %>% select(-V_j)
 
+# Standardized coefficients
+dat.cl$bmi <- (dat.cl$bmi - 30)/5
+dat.cl$age <- (dat.cl$age - 45)/5
+
 # GLMM
-glmer(y ~ trt + age + bmi + (1 | cluster), family="binomial", data=dat.cl)
+glmm <- glmer(y ~ trt + age + bmi + (1 | cluster), family="binomial", data=dat.cl)
 
 # Initialize parameters
-n_iter <- 50000
+n_iter <- 70000
 burn_in <- 3000
 theta.init <- c(rep(0,ncol(dat.cl)+J-1),0.5)
 gamma.init <- c(1,1)
@@ -81,9 +85,20 @@ x <- dat.cl %>% select(-y)
 # Run test
 source("BLR_func_cluster.R")
 set.seed(3)
-run1 <- MH.c(y, x, theta.init, gamma.init, jump_sigma, n_iter, burn_in)
+run1 <- MH.c(y, x, theta.init, gamma.init, jump_sigma, n_iter, burn_in, verbose=T)
 
-apply(run1,2,mean)
+# Coefficient comparison
+data.frame(GLMM=c(fixef(glmm),stored.vk,0.5), MCMC1=apply(run1,2,mean))
 
+# Trace plots
+par(mfrow=c(2,2))
+plot(1:n_iter, run1[,1], type="l", xlab="Iteration", ylab="Beta_hat", main="Intercept")
+plot(1:n_iter, run1[,2], type="l", xlab="Iteration", ylab="Beta_hat", main="Trt")
+plot(1:n_iter, run1[,3], type="l", xlab="Iteration", ylab="Beta_hat", main="Age")
+plot(1:n_iter, run1[,4], type="l", xlab="Iteration", ylab="Beta_hat", main="BMI")
 
-
+par(mfrow=c(2,2))
+plot(1:n_iter, run1[,5], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk1")
+plot(1:n_iter, run1[,6], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk2")
+plot(1:n_iter, run1[,7], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk3")
+plot(1:n_iter, run1[,8], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk4")

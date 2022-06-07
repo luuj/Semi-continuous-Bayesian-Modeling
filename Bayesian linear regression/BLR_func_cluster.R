@@ -24,7 +24,7 @@ log_lik.sv <- function(sigma_v, vk, num_cluster, a, b){
 # jump_sigma - variance for proposal distribution
 # n_iter - number of MH steps
 # burn_in - number of iterations to remove for burn-in
-MH.c <- function(y, x, theta_init, gamma_init, jump_sigma, n_iter, burn_in){
+MH.c <- function(y, x, theta_init, gamma_init, jump_sigma, n_iter, burn_in, verbose=F){
   # Total # of iterations
   num_iter <- n_iter + burn_in + 1
   
@@ -51,6 +51,9 @@ MH.c <- function(y, x, theta_init, gamma_init, jump_sigma, n_iter, burn_in){
 
   # Run algorithm
   for(i in 2:num_iter){
+    if (verbose==T && (i%%100 == 0)){
+      print(i)
+    }
     # Generate a proposal theta using a normal distribution
     proposal_theta_j <- theta_hat[i-1,] + rnorm(num_total,0,jump_sigma)
     for(j in 1:num_total){
@@ -98,9 +101,9 @@ MH.c <- function(y, x, theta_init, gamma_init, jump_sigma, n_iter, burn_in){
 
       # Flip coin to choose acceptance
       if (log(runif(1)) < log_ratio){
-        theta_hat[i,] <- prop_theta
+        theta_hat[i,j] <- prop_theta[j]
       } else{
-        theta_hat[i,] <- theta_hat[i-1,]
+        theta_hat[i,j] <- theta_hat[i-1,j]
       }
     }
   }
