@@ -1,23 +1,4 @@
 # BLR implementation
-# Inverse-logit
-expit <- function(xb){
-  1 / (1+exp(-xb))
-}
-
-logit <- function(xb){
-  log(xb/(1-xb))
-}
-
-# Logistic log likelihood
-log_lik.u <- function(theta, y, x){
-  p <- expit(x%*%theta) # probability of success
-  sum(dbinom(y, size=1, prob=p, log=T))
-}
-
-# Posterior distribution for logistic - flat prior
-log_post.u <- function(theta, y, x) {
-  return(log_lik.u(theta, y, x))
-}
 
 # Metropolis-Hastings algorithm
 # y - outcome values
@@ -27,15 +8,8 @@ log_post.u <- function(theta, y, x) {
 # n_iter - number of MH steps
 # burn_in - number of iterations to remove for burn-in
 MH.u <- function(y, x, beta_init, jump_sigma, n_iter, burn_in){
-  # Format data
-  y <- as.matrix(y)
-  x <- as.matrix(x)
-  
   # Total # of iterations
   total_iter <- n_iter + burn_in + 1
-  
-  # Format x
-  x <- cbind(1,x) 
   
   # Acceptance probability storage
   accept <- matrix(0, 2, length(beta_init))
@@ -57,14 +31,14 @@ MH.u <- function(y, x, beta_init, jump_sigma, n_iter, burn_in){
     proposal_theta_j <- theta_hat[i-1,j] + rnorm(1,0,jump_sigma[j])
     
     # Store previous and proposal betas
-    prev_theta <- prop_theta <- theta_hat[i-1,]
+    prev_theta <- prop_theta <- as.matrix(theta_hat[i-1,])
     prop_theta[j] <- proposal_theta_j
-    
+
     # Calculate log posterior probability of proposed
-    log_prop <- log_post.u(prop_theta, y, x)
+    log_prop <- log_lik.u(prop_theta, y, x)
     
     # Calculate log posterior probability of previous
-    log_prev <- log_post.u(prev_theta, y, x)
+    log_prev <- log_lik.u(prev_theta, y, x)
     
     # Calculate ratio
     log_ratio <- log_prop - log_prev

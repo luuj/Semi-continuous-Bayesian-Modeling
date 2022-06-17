@@ -1,8 +1,15 @@
 library(dplyr)
 library(lme4)
+library(Rcpp)
+require(RcppArmadillo)
+
+sourceCpp("BLR_func.cpp")
 source("BLR_func.R")
-source("BLR_func_cluster.R")
 source("Data_generator.R")
+
+
+
+
 
 ## Unclustered simulation
 set.seed(3)
@@ -14,12 +21,15 @@ lr <- glm(y ~ trt + age + bmi, family="binomial", data=dat)
 summary(lr)
 
 # Initialize parameters
-n_iter <- 70000
-burn_in <- 5000
+n_iter <- 10
+burn_in <- 5
 beta.init <- rep(0,ncol(dat))
 jump_sigma <- c(0.25,0.2,0.01,0.01)
-y <- dat %>% select(y)
-x <- dat %>% select(-y)
+y <- as.matrix(dat %>% select(y))
+x <- cbind(1,as.matrix(dat %>% select(-y)))
+
+theta <- matrix(c(14.24,0.22,-0.07,-0.44))
+head(MHu(as.matrix(y), as.matrix(x), beta.init, jump_sigma, n_iter, burn_in))
 
 # Run test
 set.seed(3)
@@ -79,8 +89,8 @@ burn_in <- 3000
 theta.init <- c(rep(0,ncol(dat.cl)+J-1),0.5)
 gamma.init <- c(1,1)
 jump_sigma <- c(0.25,0.2,0.01,0.01,rep(0.2, J),0.2)
-y <- dat.cl %>% select(y)
-x <- dat.cl %>% select(-y)
+y <- as.matrix(dat.cl %>% select(y))
+x <- as.matrix(dat.cl %>% select(-y))
 
 # Run test
 source("BLR_func_cluster.R")
