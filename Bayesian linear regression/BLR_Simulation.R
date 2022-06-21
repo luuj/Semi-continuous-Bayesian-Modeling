@@ -1,9 +1,5 @@
 library(dplyr)
 library(lme4)
-library(Rcpp)
-require(RcppArmadillo)
-
-sourceCpp("BLR_func.cpp")
 source("BLR_func.R")
 source("Data_generator.R")
 
@@ -21,49 +17,49 @@ lr <- glm(y ~ trt + age + bmi, family="binomial", data=dat)
 summary(lr)
 
 # Initialize parameters
-n_iter <- 10
-burn_in <- 5
+n_iter <- 100000
+burn_in <- 5000
 beta.init <- rep(0,ncol(dat))
 jump_sigma <- c(0.25,0.2,0.01,0.01)
 y <- as.matrix(dat %>% select(y))
 x <- cbind(1,as.matrix(dat %>% select(-y)))
 
-theta <- matrix(c(14.24,0.22,-0.07,-0.44))
-head(MHu(as.matrix(y), as.matrix(x), beta.init, jump_sigma, n_iter, burn_in))
-
 # Run test
 set.seed(3)
+source("BLR_func.R")
+
+ptm <- proc.time()
 run1 <- MH.u(y, x, beta.init, jump_sigma, n_iter, burn_in)
+proc.time() - ptm
+
+ptm <- proc.time()
+run1.old <- MH.r(y, x, beta.init, jump_sigma, n_iter, burn_in)
+proc.time() - ptm
+
 run2 <- MH.u(y, x, beta.init+runif(1,-0.5,0.5), jump_sigma, n_iter, burn_in)
 run3 <- MH.u(y, x, beta.init+runif(1,-1,1), jump_sigma, n_iter, burn_in)
 
 # Compare coefficient estimates
-coef1 <- run1$coef
-coef2 <- run2$coef
-coef3 <- run3$coef
-data.frame(LR=coefficients(lr), MCMC1=apply(coef1,2,mean), 
-           MCMC2=apply(coef2,2,mean), MCMC3=apply(coef3,2,mean))
+data.frame(LR=coefficients(lr), MCMC1=apply(run1,2,mean), 
+           MCMC2=apply(run2,2,mean), MCMC3=apply(run3,2,mean))
 
 # Trace plots
 par(mfrow=c(2,2))
-plot(1:n_iter, coef1[,1], type="l", xlab="Iteration", ylab="Beta_hat", main="Intercept")
-lines(1:n_iter, coef2[,1], col="red")
-lines(1:n_iter, coef3[,1], col="blue")
-plot(1:n_iter, coef1[,2], type="l", xlab="Iteration", ylab="Beta_hat", main="Trt")
-lines(1:n_iter, coef2[,2], col="red")
-lines(1:n_iter, coef3[,2], col="blue")
-plot(1:n_iter, coef1[,3], type="l", xlab="Iteration", ylab="Beta_hat", main="Age")
-lines(1:n_iter, coef2[,3], col="red",)
-lines(1:n_iter, coef3[,3], col="blue")
-plot(1:n_iter, coef1[,4], type="l", xlab="Iteration", ylab="Beta_hat", main="BMI")
-lines(1:n_iter, coef2[,4], col="red")
-lines(1:n_iter, coef3[,4], col="blue")
-
-# Acceptance probabilities
-run1$accept[1,]/run1$accept[2,]
+plot(1:n_iter, run1[,1], type="l", xlab="Iteration", ylab="Beta_hat", main="Intercept")
+lines(1:n_iter, run2[,1], col="red")
+lines(1:n_iter, run3[,1], col="blue")
+plot(1:n_iter, run1[,2], type="l", xlab="Iteration", ylab="Beta_hat", main="Trt")
+lines(1:n_iter, run2[,2], col="red")
+lines(1:n_iter, run3[,2], col="blue")
+plot(1:n_iter, run1[,3], type="l", xlab="Iteration", ylab="Beta_hat", main="Age")
+lines(1:n_iter, run2[,3], col="red",)
+lines(1:n_iter, run3[,3], col="blue")
+plot(1:n_iter, run1[,4], type="l", xlab="Iteration", ylab="Beta_hat", main="BMI")
+lines(1:n_iter, run2[,4], col="red")
+lines(1:n_iter, run3[,4], col="blue")
 
 # Potential scale reduction - rule of thumb is 1.1
-ptr <- mcmc.list(mcmc(coef1), mcmc(coef2), mcmc(coef3))
+ptr <- mcmc.list(mcmc(run1), mcmc(run2), mcmc(run3))
 gelman.diag(ptr)
 
 
@@ -112,3 +108,7 @@ plot(1:n_iter, run1[,5], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk1")
 plot(1:n_iter, run1[,6], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk2")
 plot(1:n_iter, run1[,7], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk3")
 plot(1:n_iter, run1[,8], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk4")
+
+
+
+
