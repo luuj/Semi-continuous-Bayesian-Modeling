@@ -1,6 +1,10 @@
-# Covariate matrix and number of observations
-n_j <- 40
-J <- 100
+# Expit and logit function definitions
+expit <- function(x){plogis(x)}
+logit <- function(x){qlogis(x)}
+
+# Design matrix and number of observations
+n_j <- 400
+J <- 10
 n <- n_j*J
 design_matrix <- data.frame(1,trt=rbinom(n,1,0.5),
                 age=sample(20:70,n,replace=TRUE),
@@ -26,7 +30,6 @@ gen_data <- function(param, x, n_j, J, sigma_v){
   }
   
   y <- rbinom(n_j*J,1,pi)
-  
   data.frame(y,x[,-1],cluster,V_j)
 }
 

@@ -8,7 +8,7 @@ source("Data_generator.R")
 
 
 ## Unclustered simulation
-set.seed(3)
+set.seed(4)
 dat <- gen_data(param=c(14.24,0.22,-0.07,-0.44), x=design_matrix, n_j=n, J=1, sigma_v=1)
 dat <- dat %>% select(-cluster, -V_j)
 
@@ -18,24 +18,14 @@ summary(lr)
 
 # Initialize parameters
 n_iter <- 100000
-burn_in <- 5000
+burn_in <- 10000
 beta.init <- rep(0,ncol(dat))
 jump_sigma <- c(0.25,0.2,0.01,0.01)
 y <- as.matrix(dat %>% select(y))
 x <- cbind(1,as.matrix(dat %>% select(-y)))
 
-# Run test
-set.seed(3)
-source("BLR_func.R")
-
-ptm <- proc.time()
+# Run algorithm
 run1 <- MH.u(y, x, beta.init, jump_sigma, n_iter, burn_in)
-proc.time() - ptm
-
-ptm <- proc.time()
-run1.old <- MH.r(y, x, beta.init, jump_sigma, n_iter, burn_in)
-proc.time() - ptm
-
 run2 <- MH.u(y, x, beta.init+runif(1,-0.5,0.5), jump_sigma, n_iter, burn_in)
 run3 <- MH.u(y, x, beta.init+runif(1,-1,1), jump_sigma, n_iter, burn_in)
 
@@ -59,6 +49,7 @@ lines(1:n_iter, run2[,4], col="red")
 lines(1:n_iter, run3[,4], col="blue")
 
 # Potential scale reduction - rule of thumb is 1.1
+library(coda)
 ptr <- mcmc.list(mcmc(run1), mcmc(run2), mcmc(run3))
 gelman.diag(ptr)
 
@@ -67,7 +58,7 @@ gelman.diag(ptr)
 
 
 ### Clustered simulation
-set.seed(3)
+set.seed(4)
 dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), x=design_matrix, n_j=n_j, J=J, sigma_v=0.5)
 stored.vk <- unique(dat.cl$V_j)
 dat.cl <- dat.cl %>% select(-V_j)
