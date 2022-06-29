@@ -1,7 +1,9 @@
 ### Bayesian Linear Regression - Main Script ####
 library(dplyr)
 library(lme4)
-source("BLR_func.R")
+library(Rcpp)
+require(RcppArmadillo)
+sourceCpp("BLR_func.cpp")
 source("Helper Files/BLR_Data_Gen.R")
 
 
@@ -26,9 +28,9 @@ y <- as.matrix(dat %>% select(y))
 x <- cbind(1,as.matrix(dat %>% select(-y)))
 
 # Run algorithm
-run1 <- MH.u(y, x, beta.init, jump_sigma, n_iter, burn_in)
-run2 <- MH.u(y, x, beta.init+runif(1,-0.5,0.5), jump_sigma, n_iter, burn_in)
-run3 <- MH.u(y, x, beta.init+runif(1,-1,1), jump_sigma, n_iter, burn_in)
+run1 <- MHu(y, x, beta.init, jump_sigma, n_iter, burn_in)
+run2 <- MHu(y, x, beta.init+runif(1,-0.5,0.5), jump_sigma, n_iter, burn_in)
+run3 <- MHu(y, x, beta.init+runif(1,-1,1), jump_sigma, n_iter, burn_in)
 
 # Compare coefficient estimates
 data.frame(LR=coefficients(lr), MCMC1=apply(run1,2,mean), 
@@ -64,12 +66,9 @@ dat.cl <- gen_data(param=c(14.24,0.22,-0.07,-0.44), x=design_matrix, n_j=n_j, J=
 stored.vk <- unique(dat.cl$V_j)
 dat.cl <- dat.cl %>% select(-V_j)
 
-# Standardized coefficients
-dat.cl$bmi <- (dat.cl$bmi - 30)/5
-dat.cl$age <- (dat.cl$age - 45)/5
-
 # GLMM
 glmm <- glmer(y ~ trt + age + bmi + (1 | cluster), family="binomial", data=dat.cl)
+summary(glmm)
 
 # Initialize parameters
 n_iter <- 70000
@@ -78,12 +77,12 @@ theta.init <- c(rep(0,ncol(dat.cl)+J-1),0.5)
 gamma.init <- c(1,1)
 jump_sigma <- c(0.25,0.2,0.01,0.01,rep(0.2, J),0.2)
 y <- as.matrix(dat.cl %>% select(y))
-x <- as.matrix(dat.cl %>% select(-y))
+x <- cbind(1,as.matrix(dat.cl %>% select(-y)))
+
 
 # Run test
-source("BLR_func_cluster.R")
 set.seed(3)
-run1 <- MH.c(y, x, theta.init, gamma.init, jump_sigma, n_iter, burn_in, verbose=T)
+run1 <- MH.c(y, x, theta.init, gamma.init, jump_sigma, n_iter, burn_in)
 
 # Coefficient comparison
 data.frame(GLMM=c(fixef(glmm),stored.vk,0.5), MCMC1=apply(run1,2,mean))
@@ -101,6 +100,14 @@ plot(1:n_iter, run1[,6], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk2")
 plot(1:n_iter, run1[,7], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk3")
 plot(1:n_iter, run1[,8], type="l", xlab="Iteration", ylab="Vk_hat", main="Vk4")
 
+
+
+
+
+
+source("BLR_func.R")
+set.seed(3)
+run1 <- MH.c(y, x, theta.init, gamma.init, jump_sigma, n_iter, burn_in)
 
 
 
