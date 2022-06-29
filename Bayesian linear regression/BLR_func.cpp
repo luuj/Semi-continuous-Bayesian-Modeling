@@ -1,3 +1,4 @@
+/*C++ helper code to optimize BLR_func.R MH */
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 using namespace arma;

@@ -1,7 +1,8 @@
+### Bayesian Linear Regression - Main Script ####
 library(dplyr)
 library(lme4)
 source("BLR_func.R")
-source("Data_generator.R")
+source("Helper Files/BLR_Data_Gen.R")
 
 
 
