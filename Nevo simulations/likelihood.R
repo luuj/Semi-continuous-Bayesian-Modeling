@@ -2,6 +2,12 @@ library(gtools)
 library(dplyr)
 
 # Likelihood calculator
+# Wrapper function for optim
+loglik <- function(data,beta){
+  beta <- data.frame(beta1=beta[1], beta2=beta[2], betat=0, beta1y=0, beta2y=0)
+  return(-loglik_i(beta,data))
+}
+
 loglik_i <- function(beta, data){
   y1_prev <- y2_prev <- ll <- 0
   n <- nrow(data)
@@ -64,38 +70,27 @@ pi12 <- function(theta, pi1, pi2){
 
 # Functions to calculate time-dependent alphas
 alpha1 <- function(t){
-  logit(0.2 + 0.02*(t-65) + 0.005*(t-70)^2)
+  return(0)
 }
 
-temp <- 70:74
-plot(temp, inv.logit(alpha1(temp)), type="l")
-
 alpha2 <- function(t){
-  logit(0.03 + 0.003*(t-65) + 0.00016*(t-65)^2)
+  return(0)
 }
 
 alphat <- function(t){
-  ifelse(t<=95, 0.9 + 0.07*(t-65) - 0.0032*(t-65)^2, 0)
+  return(0)
 }
+## Change these alphas to parameters 
 
 
-# Data structure
-data <- data.frame(id=rep(0,4), t=70:73, y1=c(0,1,1,0), y2=c(0,0,0,1), trt=rep(1,4))
-beta <- data.frame(beta1=log(0.7), beta2=log(0.5), betat=0, beta1y=log(1.2), beta2y=log(1.4))
-
-# Run likelihood
-loglik_i(beta, data)
-
-
-
-
-# Generate data
-gen_data <- function(n=20, n_obs=5){
+### Generate data
+gen_data <- function(n=2000, n_obs=10){
   trt <- rep(rbinom(n,1,0.5),each=n_obs)
   t <- rep(70:74,n_obs)
   id <- rep(1:n, each=n_obs)
-  beta <- data.frame(beta1=5, beta2=3, betat=3, beta1y=log(1.2), beta2y=log(1.4))
-  dat <- data.frame(id,t,y1=0,y2=0,trt)
+  pattern <- c("P00", rep(0,n_obs-1))
+  beta <- data.frame(beta1=2, beta2=-0.5, betat=0, beta1y=0, beta2y=0)
+  dat <- data.frame(id,t,y1=0,y2=0,trt,pattern)
 
   for (i in 1:n){
     # Generate sequence of outcomes
@@ -126,30 +121,53 @@ gen_data <- function(n=20, n_obs=5){
       
       # Choose outcome
       out <- which(rmultinom(1,1,c(prob_00,prob_01,prob_10,prob_11))==1)
-      print(c(prob_00,prob_01,prob_10,prob_11,out))
-      
+
       switch(out,
        {dat[ci,"y1"]=0
-        dat[ci,"y2"]=0},
+        dat[ci,"y2"]=0
+        dat[ci,"pattern"]="P00"},
        {dat[ci,"y1"]=0
-        dat[ci,"y2"]=1},
+        dat[ci,"y2"]=1
+        dat[ci,"pattern"]="P01"},
        {dat[ci,"y1"]=1
-        dat[ci,"y2"]=0},
+        dat[ci,"y2"]=0
+        dat[ci,"pattern"]="P10"},
        {dat[ci,"y1"]=1
-        dat[ci,"y2"]=1}
+        dat[ci,"y2"]=1
+        dat[ci,"pattern"]="P11"}
       )
     }
   }
+  
+  # Remove data points after a person dies
+  dat <- dat %>% filter(pattern != 0)
+  
   return(dat)
 }
 
-gen_data()
+dat <- gen_data(n_obs=10)
+table(dat$trt,dat$pattern)
 
-# could look at event rates and its effect on beta
-# play with alpha curve for good variability to affect baseline
-# can start by setting alpha as set values
-# can start with freq. maximizing likelihood before bayesian
+# Count censored individuals
+checkCensor <- function(dat.in){
+  tibble(censor=(sum(dat.in$y1)==0 & sum(dat.in$y2)==0))
+}
+censor <- dat %>% group_by(id) %>% group_modify(~ checkCensor(.))
+censor.id <- censor %>% filter(censor == T) %>% pull(id)
+length(censor.id)
+#dat %>% filter(id %in% censor.id)
+
+checkFinal <- function(dat.in){
+  n <- nrow(dat.in)
+  tibble(pattern=dat.in[n,"pattern"])
+}
+final <- dat %>% group_by(id) %>% group_modify(~ checkFinal(.))
+table(final$pattern)
+
+max_like <- optim(par=c(1,1),fn=loglik,data=dat,method="L-BFGS-B", control = list(trace=3))
 
 
+# Could try simplifying down to 1 outcome
+# Intermediate - 2 models without the theta to connect - add back the second outcome
 
 
