@@ -5,12 +5,18 @@ m1 <- function(){
   # Priors:
   alphay ~ dnorm(0, 0.0001) # mean, precision
   betay ~ dnorm(0, 0.0001)
+  betay2 ~ dnorm(0, 0.0001)
+  betay3 ~ dnorm(0, 0.0001)
   gammay ~ dnorm(0, 0.0001)
   alpham ~ dnorm(0, 0.0001)
   betam ~ dnorm(0, 0.0001)
+  betam2 ~ dnorm(0, 0.0001)
+  betam3 ~ dnorm(0, 0.0001)
   shape ~ dunif(0, 100)
   alphad ~ dnorm(0, 0.0001)
   betad ~ dnorm(0, 0.0001)
+  betad2 ~ dnorm(0, 0.0001)
+  betad3 ~ dnorm(0, 0.0001)
   gammad ~ dnorm(0, 0.0001)
   
   # Priors for cluster random effects
@@ -31,15 +37,15 @@ m1 <- function(){
   
   # Likelihood data model:
   for (i in 1:N) {
-    lp1[i] <- alphay + betay * x[i] + gammay * y_prev[i] + V1[re[i]]
+    lp1[i] <- alphay + betay * trt[i] + betay2 * age[i] + betay3 * ht[i] + gammay * y_prev[i] + V1[re[i]]
     y1[i] ~ dbern(ilogit(lp1[i]))
     
-    lp3[i] <- alphad + betad * x[i] + gammad * y_prev[i] + V2[re[i]]
+    lp3[i] <- alphad + betad * trt[i] + betad2 * age[i] + betad3 * ht[i] + gammad * y_prev[i] + V2[re[i]]
     y2[i] ~ dbern(ilogit(lp3[i]))
   }
   
   for (i in 1:N2){
-    lp2[i] <- alpham + betam * x2[i] + Vmu[re2[i]]
+    lp2[i] <- alpham + betam * trt2[i] + betam2 * age2[i] + betam3 * ht2[i] + Vmu[re2[i]]
     cost[i] ~ dgamma(shape, shape / exp(lp2[i]))
   }
 }
@@ -54,10 +60,14 @@ GS <- function(dat.in){
     y1 = dat.in$y1, # Outcomes
     y2 = dat.in$y2,
     y_prev = dat.in$y1_prev,
-    x = dat.in$trt, # Covariates
+    trt = dat.in$trt, # Covariates
+    age = dat.in$age,
+    ht = dat.in$hometype,
     N = nrow(dat.in), # Full dataset
     cost = dat.dist$cost,
-    x2 = dat.dist$trt,
+    trt2 = dat.dist$trt,
+    age2 = dat.dist$age,
+    ht2= dat.dist$hometype,
     N2 = nrow(dat.dist), # Positive costs dataset 
     re = as.numeric(dat$clst), # Cluster RE
     re2 = as.numeric(dat.dist$clst), # Cluster RE positive cost
@@ -67,7 +77,9 @@ GS <- function(dat.in){
     A1 = diag(Nre2)
   )
   
-  par <- c("alphay", "betay", "gammay","alpham", "betam", "shape", "alphad", "betad", "gammad",
+  par <- c("alphay", "betay", "betay2", "betay3", "gammay",
+           "alpham", "betam", "betam2", "betam3", "shape",
+           "alphad", "betad", "betad2", "betad3", "gammad",
            "V1", "V2", "Vmu", "V1_sig", "V2_sig", "Vmu_sig")
   
   inits <- function () {
@@ -77,13 +89,14 @@ GS <- function(dat.in){
          V2 = rnorm(Nre, 0, 1),
          V2_num = runif(1, 0, 5),
          V2_denom = runif(1, 0, 1),
-         Vmu = rnorm(Nre2, 0, 1),
+         Vmu = rnorm(Nre2, 0, 0.005),
          Vmu_num = runif(1, 0, 5),
-         Vmu_denom = runif(1, 0, 1))}
+         Vmu_denom = runif(1, 0, 1),
+         alpham=1)}
   
   mod <- R2jags::jags.parallel(data = model.data, inits = inits,
                                parameters.to.save = par, model.file = m1,
-                               n.chains=3, n.iter=6000)
+                               n.chains=3, n.iter=30000)
   
   return(mod)
 }
