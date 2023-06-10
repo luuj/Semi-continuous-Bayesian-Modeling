@@ -20,15 +20,15 @@ gen_data <- function(n_k=10, n_t=12, k=20){
   dat <- tibble(id,t,clst,trt,age,hometype,perTrt,y1=NA,y2=NA,y1_prev=0,cost=0,cumcost=0)
 
   # Known coefficients
-  # beta <- tibble(beta1=c(1.3,0.02,-0.5), beta2=c(-0.5,0.02,-0.5), betat=c(1,0.02,-0.5), betam=c(1.5,0.02,-0.5))
-  # betay <- tibble(beta1y=0.8, beta2y=-1.3)
-  # alpha <- tibble(alpha1=-1.5, alpha2=-2.5, alphat=0.5, alpham=1)
-  # shape <- 2
-  
-  beta <- tibble(beta1=c(0.01,0.002,-0.01), beta2=c(-2,0.03,-1), betat=c(1,0.02,-0.5), betam=c(0.01,0.001,-0.01))
+  beta <- tibble(beta1=c(1.3,0.02,-0.5), beta2=c(-0.5,0.02,-0.5), betat=c(1,0.02,-0.5), betam=c(1.5,0.02,-0.5))
   betay <- tibble(beta1y=0.8, beta2y=-1.3)
-  alpha <- tibble(alpha1=-0.5, alpha2=-2.5, alphat=0.5, alpham=4)
+  alpha <- tibble(alpha1=-1.5, alpha2=-2.5, alphat=0.5, alpham=1)
   shape <- 2
+  
+  # beta <- tibble(beta1=c(0.01,0.002,-0.01), beta2=c(-2,0.03,-1), betat=c(1,0.02,-0.5), betam=c(0.01,0.001,-0.01))
+  # betay <- tibble(beta1y=0.8, beta2y=-1.3)
+  # alpha <- tibble(alpha1=-0.5, alpha2=-2.5, alphat=0.5, alpham=4)
+  # shape <- 2
   
   # Generate cluster-level random effects
   nDiff <- sum(perTrtInit < .5)

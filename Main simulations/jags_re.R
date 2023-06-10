@@ -96,7 +96,7 @@ GS <- function(dat.in){
   
   mod <- R2jags::jags.parallel(data = model.data, inits = inits,
                                parameters.to.save = par, model.file = m1,
-                               n.chains=3, n.iter=30000)
+                               n.chains=3, n.iter=10000)
   
   return(mod)
 }

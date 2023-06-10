@@ -1,5 +1,6 @@
 library(shiny)
-source("likelihood.R")
+library(ggplot2 )
+source("../gendata.R")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -60,11 +61,12 @@ server <- function(input, output) {
     # Update dataset when parameters are changed
     dat <- reactive({
       set.seed(10)
-      gen_data(n_k=70, n_t=12, k=250,
-        bSigma=(diag(2)*input$bSigma),
-        vSigma=(diag(3)*input$vSigma),
-        coefs=c(input$beta1, input$beta2, input$betat, input$beta1y, input$beta2y, input$betam,
-                input$alpha1, input$alpha2, input$alphat, input$alpham))
+      # gen_data(n_k=70, n_t=12, k=250,
+      #   bSigma=(diag(2)*input$bSigma),
+      #   vSigma=(diag(3)*input$vSigma),
+      #   coefs=c(input$beta1, input$beta2, input$betat, input$beta1y, input$beta2y, input$betam,
+      #           input$alpha1, input$alpha2, input$alphat, input$alpham))
+      gen_data(n_k=70, n_t=12, k=250)
     })
     
     output$distPlot <- renderPlot({
@@ -126,10 +128,4 @@ clusterSummary <- function(covar, fn, dat, includeTrt = T){
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-
-
-# Add likelihood to the prior for sre
-# Send results / presentations on Wednesday morning
-# For comparison, could try scenario where we ignore death, could try valerie's model 
 

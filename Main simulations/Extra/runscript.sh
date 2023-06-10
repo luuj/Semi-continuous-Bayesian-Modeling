@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -p shared
 #SBATCH -c 1
-#SBATCH -t 3-00:00
+#SBATCH -t 6-00:00
 #SBATCH --mem 12G
 
 module load JAGS/4.3.0-fasrc01
